@@ -25,19 +25,49 @@ define(function (require, exports, module) {
     return {
       startState: function () {
         return {
+          allowFeature: true,
+          allowBackground: false,
+          allowScenario: false,
+          allowSteps: false
         };
       },
       token: function (stream, state) {
-        if (stream.sol()) {
-          if (stream.match(regex.keywords)) {
-            stream.eatSpace();
-            return "keyword";
-          } else {
-            stream.skipToEnd();
-          }
+        stream.eatSpace();
+
+        // LINE COMMENT
+        if (stream.match(/^#.*/)) {
+          return "comment";
+
+        // TAG
+        } else if (stream.match(/^@\S+/)) {
+          return "def";
+
+        // FEATURE
+        } else if (state.allowFeature && stream.match(/^Feature:/)) {
+          state.allowScenario = true;
+          state.allowBackground = true;
+          state.allowSteps = false;
+          return "keyword";
+
+        // BACKGROUND
+        } else if (state.allowBackground && stream.match(/^Background:/)) {
+          state.allowSteps = true;
+          state.allowBackground = false;
+          return "keyword";
+
+        // SCENARIO
+        } else if (state.allowScenario && stream.match(/^Scenario:/)) {
+          state.allowSteps = true;
+          state.allowBackground = false;
+          return "keyword";
+
+        // STEPS
+        } else if (state.allowSteps && stream.match(/^(Given|When|Then|And|But)/)) {
+          return "keyword";
+
+        // Fall through
         } else {
           stream.skipToEnd();
-          return null;
         }
 
         return null;
@@ -48,8 +78,6 @@ define(function (require, exports, module) {
   LanguageManager.defineLanguage("gherkin", {
     name: "Gherkin",
     mode: "gherkin",
-    fileExtensions: ["feature"],
-    blockComment: ["//", "//"],
-    lineComment: ["//-", "//"]
+    fileExtensions: ["feature"]
   });
 });
