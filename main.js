@@ -25,19 +25,37 @@ define(function (require, exports, module) {
     return {
       startState: function () {
         return {
+          allowFeature: true,
+          allowScenario: false,
+          allowSteps: false
         };
       },
       token: function (stream, state) {
         if (stream.sol()) {
-          if (stream.match(regex.keywords)) {
-            stream.eatSpace();
+          stream.eatSpace();
+
+          // FEATURE
+          if (state.allowFeature && stream.match(/^Feature:/)) {
+            state.allowScenario = true;
+            state.allowSteps = false;
             return "keyword";
+
+          // SCENARIO
+          } else if (state.allowScenario && stream.match(/^Scenario:/)) {
+            state.allowSteps = true;
+            return "keyword";
+
+          // STEPS
+          } else if (state.allowSteps && stream.match(/^(Given|When|Then|And|But)/)) {
+            return "keyword";
+
+          // Fall through
           } else {
             stream.skipToEnd();
           }
         } else {
+          // Fall through
           stream.skipToEnd();
-          return null;
         }
 
         return null;
