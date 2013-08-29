@@ -34,8 +34,12 @@ define(function (require, exports, module) {
         if (stream.sol()) {
           stream.eatSpace();
 
+          // LINE COMMENT
+          if (stream.match(/^#.*/)) {
+            return "comment";
+
           // FEATURE
-          if (state.allowFeature && stream.match(/^Feature:/)) {
+          } else if (state.allowFeature && stream.match(/^Feature:/)) {
             state.allowScenario = true;
             state.allowSteps = false;
             return "keyword";
