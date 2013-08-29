@@ -1,0 +1,25 @@
+{
+  "name": "com.tregusti.gherkin",
+  "title": "Gherkin",
+  "description": "Syntax highlighting for Gherkin",
+  "homepage": "https://github.com/tregusti/brackets-gherkin",
+  "keywords": [
+    "gherkin",
+    "cucumber",
+    "syntax",
+    "highlighting"
+  ],
+  "version": "0.0.1",
+  "author": {
+    "name": "Glenn Jorde",
+    "email": "glenn@tregusti.com",
+    "url": "http://tregusti.com"
+  },
+  "licenses": [{
+    "type": "MIT",
+    "url": "http://tregusti.mit-license.org/"
+  }],
+  "engines": {
+    "brackets": ">=0.29.0"
+  }
+}
