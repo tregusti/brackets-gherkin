@@ -31,34 +31,29 @@ define(function (require, exports, module) {
         };
       },
       token: function (stream, state) {
-        if (stream.sol()) {
-          stream.eatSpace();
+        stream.eatSpace();
 
-          // LINE COMMENT
-          if (stream.match(/^#.*/)) {
-            return "comment";
+        // LINE COMMENT
+        if (stream.match(/^#.*/)) {
+          return "comment";
 
-          // FEATURE
-          } else if (state.allowFeature && stream.match(/^Feature:/)) {
-            state.allowScenario = true;
-            state.allowSteps = false;
-            return "keyword";
+        // FEATURE
+        } else if (state.allowFeature && stream.match(/^Feature:/)) {
+          state.allowScenario = true;
+          state.allowSteps = false;
+          return "keyword";
 
-          // SCENARIO
-          } else if (state.allowScenario && stream.match(/^Scenario:/)) {
-            state.allowSteps = true;
-            return "keyword";
+        // SCENARIO
+        } else if (state.allowScenario && stream.match(/^Scenario:/)) {
+          state.allowSteps = true;
+          return "keyword";
 
-          // STEPS
-          } else if (state.allowSteps && stream.match(/^(Given|When|Then|And|But)/)) {
-            return "keyword";
+        // STEPS
+        } else if (state.allowSteps && stream.match(/^(Given|When|Then|And|But)/)) {
+          return "keyword";
 
-          // Fall through
-          } else {
-            stream.skipToEnd();
-          }
+        // Fall through
         } else {
-          // Fall through
           stream.skipToEnd();
         }
 
