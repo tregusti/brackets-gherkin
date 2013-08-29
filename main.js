@@ -37,6 +37,10 @@ define(function (require, exports, module) {
         if (stream.match(/^#.*/)) {
           return "comment";
 
+        // TAG
+        } else if (stream.match(/^@\S+/)) {
+          return "def";
+
         // FEATURE
         } else if (state.allowFeature && stream.match(/^Feature:/)) {
           state.allowScenario = true;
