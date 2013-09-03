@@ -1,4 +1,7 @@
 Feature: Multiple site support
+  In order to post to a blog
+  As any user
+  I want to be able to do so
 
   Background:
     Given a global administrator named "Greg"
