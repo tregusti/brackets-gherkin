@@ -34,7 +34,8 @@ define(function (require, exports, module) {
           allowScenario: false,
           allowSteps: false,
           inMultilineArgument: false,
-          inMultilineString: false
+          inMultilineString: false,
+          inMultilineTable: false
         };
       },
       token: function (stream, state) {
