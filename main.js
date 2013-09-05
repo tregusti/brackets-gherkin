@@ -60,7 +60,7 @@ define(function (require, exports, module) {
               if (stream.eol()) {
                 state.inMultilineTable = false;
               }
-              return "keyword";
+              return null;
             } else {
               stream.match(/[^\|]/);
               return "string";
@@ -75,7 +75,7 @@ define(function (require, exports, module) {
           } else if (stream.match("|")) {
             // Table
             state.inMultilineTable = true;
-            return "keyword";
+            return null;
           } else {
             state.inMultilineArgument = false;
           }
