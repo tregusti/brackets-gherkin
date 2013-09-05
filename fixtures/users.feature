@@ -9,7 +9,7 @@ Feature:
       | Aslak  | aslak@email.com  | 123   |
       | Glenn  | glenn@email.com  | 234   |
       | Miliam | miliam@email.org | 456   |
-    When I remove Aslak
+    When I remove "Aslak"
     Then I should see:
       | name   |
       | Glenn  |
