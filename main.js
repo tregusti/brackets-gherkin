@@ -32,11 +32,34 @@ define(function (require, exports, module) {
           allowFeature: true,
           allowBackground: false,
           allowScenario: false,
-          allowSteps: false
+          allowSteps: false,
+          inMultiline: false,
+          inMultilineString: false
         };
       },
       token: function (stream, state) {
         stream.eatSpace();
+
+        if (state.inMultiline) {
+          if (state.inMultilineString) {
+            if (stream.match('"""')) {
+              state.inMultilineString = false;
+              state.inMultiline = false;
+            } else {
+              stream.match(/.*/);
+            }
+            return "string";
+          }
+
+          if (stream.match('"""')) {
+            state.inMultilineString = true;
+            return "string";
+          } else {
+            state.inMultiline = false;
+          }
+
+          return null;
+        }
 
         // LINE COMMENT
         if (stream.match(/#.*/)) {
@@ -45,11 +68,6 @@ define(function (require, exports, module) {
         // TAG
         } else if (stream.match(/@\S+/)) {
           return "def";
-
-        // INLINE STRING
-        } else if (stream.match(/"/)) {
-          stream.match(/.*?"/);
-          return "string";
 
         // FEATURE
         } else if (state.allowFeature && stream.match(/Feature:/)) {
@@ -74,9 +92,19 @@ define(function (require, exports, module) {
         } else if (state.allowSteps && stream.match(/(Given|When|Then|And|But)/)) {
           return "keyword";
 
+        // INLINE STRING
+        } else if (!state.inMultiline && stream.match(/"/)) {
+          stream.match(/.*?"/);
+          return "string";
+
+        // MULTILINE ARGUMENTS
+        } else if (stream.match(/:\s*$/)) {
+          state.inMultiline = true;
+          return "keyword";
+
         // Fall through
         } else {
-          stream.eatWhile(/[^"]/);
+          stream.eatWhile(/[^":]/);
         }
 
         return null;
