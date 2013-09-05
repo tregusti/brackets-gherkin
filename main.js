@@ -16,9 +16,13 @@ define(function (require, exports, module) {
   'use strict';
 
   var LanguageManager = brackets.getModule("language/LanguageManager");
+  var Quotes = {
+    SINGLE: 1,
+    DOUBLE: 2
+  };
 
   var regex = {
-    keywords: /^(Feature| {2}(Scenario|In order to|As|I)| {4}(Given|When|Then|And))/
+    keywords: /(Feature| {2}(Scenario|In order to|As|I)| {4}(Given|When|Then|And))/
   };
 
   CodeMirror.defineMode("gherkin", function () {
@@ -35,39 +39,44 @@ define(function (require, exports, module) {
         stream.eatSpace();
 
         // LINE COMMENT
-        if (stream.match(/^#.*/)) {
+        if (stream.match(/#.*/)) {
           return "comment";
 
         // TAG
-        } else if (stream.match(/^@\S+/)) {
+        } else if (stream.match(/@\S+/)) {
           return "def";
 
+        // INLINE STRING
+        } else if (stream.match(/"/)) {
+          stream.match(/.*?"/);
+          return "string";
+
         // FEATURE
-        } else if (state.allowFeature && stream.match(/^Feature:/)) {
+        } else if (state.allowFeature && stream.match(/Feature:/)) {
           state.allowScenario = true;
           state.allowBackground = true;
           state.allowSteps = false;
           return "keyword";
 
         // BACKGROUND
-        } else if (state.allowBackground && stream.match(/^Background:/)) {
+        } else if (state.allowBackground && stream.match(/Background:/)) {
           state.allowSteps = true;
           state.allowBackground = false;
           return "keyword";
 
         // SCENARIO
-        } else if (state.allowScenario && stream.match(/^Scenario:/)) {
+        } else if (state.allowScenario && stream.match(/Scenario:/)) {
           state.allowSteps = true;
           state.allowBackground = false;
           return "keyword";
 
         // STEPS
-        } else if (state.allowSteps && stream.match(/^(Given|When|Then|And|But)/)) {
+        } else if (state.allowSteps && stream.match(/(Given|When|Then|And|But)/)) {
           return "keyword";
 
         // Fall through
         } else {
-          stream.skipToEnd();
+          stream.eatWhile(/[^"]/);
         }
 
         return null;
