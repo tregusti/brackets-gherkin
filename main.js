@@ -32,11 +32,57 @@ define(function (require, exports, module) {
           allowFeature: true,
           allowBackground: false,
           allowScenario: false,
-          allowSteps: false
+          allowSteps: false,
+          inMultilineArgument: false,
+          inMultilineString: false
         };
       },
       token: function (stream, state) {
         stream.eatSpace();
+
+        // INSIDE OF MULTILINE ARGUMENTS
+        if (state.inMultilineArgument) {
+
+          // STRING
+          if (state.inMultilineString) {
+            if (stream.match('"""')) {
+              state.inMultilineString = false;
+              state.inMultilineArgument = false;
+            } else {
+              stream.match(/.*/);
+            }
+            return "string";
+          }
+
+          // TABLE
+          if (state.inMultilineTable) {
+            if (stream.match(/\|\s*/)) {
+              if (stream.eol()) {
+                state.inMultilineTable = false;
+              }
+              return null;
+            } else {
+              stream.match(/[^\|]/);
+              return "string";
+            }
+          }
+
+          // DETECT START
+          if (stream.match('"""')) {
+            // String
+            state.inMultilineString = true;
+            return "string";
+          } else if (stream.match("|")) {
+            // Table
+            state.inMultilineTable = true;
+            return null;
+          } else {
+            state.inMultilineArgument = false;
+          }
+
+
+          return null;
+        }
 
         // LINE COMMENT
         if (stream.match(/#.*/)) {
@@ -45,11 +91,6 @@ define(function (require, exports, module) {
         // TAG
         } else if (stream.match(/@\S+/)) {
           return "def";
-
-        // INLINE STRING
-        } else if (stream.match(/"/)) {
-          stream.match(/.*?"/);
-          return "string";
 
         // FEATURE
         } else if (state.allowFeature && stream.match(/Feature:/)) {
@@ -74,9 +115,19 @@ define(function (require, exports, module) {
         } else if (state.allowSteps && stream.match(/(Given|When|Then|And|But)/)) {
           return "keyword";
 
+        // INLINE STRING
+        } else if (!state.inMultiline && stream.match(/"/)) {
+          stream.match(/.*?"/);
+          return "string";
+
+        // MULTILINE ARGUMENTS
+        } else if (stream.match(/:\s*$/)) {
+          state.inMultilineArgument = true;
+          return "keyword";
+
         // Fall through
         } else {
-          stream.eatWhile(/[^"]/);
+          stream.eatWhile(/[^":]/);
         }
 
         return null;
