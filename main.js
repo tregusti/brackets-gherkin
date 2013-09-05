@@ -117,7 +117,7 @@ define(function (require, exports, module) {
           return "keyword";
 
         // INLINE STRING
-        } else if (!state.inMultiline && stream.match(/"/)) {
+        } else if (!state.inMultilineArgument && stream.match(/"/)) {
           stream.match(/.*?"/);
           return "string";
 
