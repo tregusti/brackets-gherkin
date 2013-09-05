@@ -33,30 +33,53 @@ define(function (require, exports, module) {
           allowBackground: false,
           allowScenario: false,
           allowSteps: false,
-          inMultiline: false,
+          inMultilineArgument: false,
           inMultilineString: false
         };
       },
       token: function (stream, state) {
         stream.eatSpace();
 
-        if (state.inMultiline) {
+        // INSIDE OF MULTILINE ARGUMENTS
+        if (state.inMultilineArgument) {
+
+          // STRING
           if (state.inMultilineString) {
             if (stream.match('"""')) {
               state.inMultilineString = false;
-              state.inMultiline = false;
+              state.inMultilineArgument = false;
             } else {
               stream.match(/.*/);
             }
             return "string";
           }
 
+          // TABLE
+          if (state.inMultilineTable) {
+            if (stream.match(/\|\s*/)) {
+              if (stream.eol()) {
+                state.inMultilineTable = false;
+              }
+              return "keyword";
+            } else {
+              stream.match(/[^\|]/);
+              return "string";
+            }
+          }
+
+          // DETECT START
           if (stream.match('"""')) {
+            // String
             state.inMultilineString = true;
             return "string";
+          } else if (stream.match("|")) {
+            // Table
+            state.inMultilineTable = true;
+            return "keyword";
           } else {
-            state.inMultiline = false;
+            state.inMultilineArgument = false;
           }
+
 
           return null;
         }
@@ -99,7 +122,7 @@ define(function (require, exports, module) {
 
         // MULTILINE ARGUMENTS
         } else if (stream.match(/:\s*$/)) {
-          state.inMultiline = true;
+          state.inMultilineArgument = true;
           return "keyword";
 
         // Fall through
