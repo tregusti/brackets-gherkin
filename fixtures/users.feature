@@ -15,3 +15,13 @@ Feature:
       | Glenn  |
       | Miliam |
     And I should not see a user named "Aslak"
+
+  Scenario Outline: Creating users
+    Given there are user database
+    When I create a new user named <user>
+    Then I should see a list of <count> users
+
+  Examples:
+    | user  | count |
+    | Glenn | 1     |
+    | Sigyn | 2     |

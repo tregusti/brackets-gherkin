@@ -33,6 +33,7 @@ define(function (require, exports, module) {
           allowBackground: false,
           allowScenario: false,
           allowSteps: false,
+          allowPlaceholders: false,
           inMultilineArgument: false,
           inMultilineString: false,
           inMultilineTable: false
@@ -97,17 +98,34 @@ define(function (require, exports, module) {
         } else if (state.allowFeature && stream.match(/Feature:/)) {
           state.allowScenario = true;
           state.allowBackground = true;
+          state.allowPlaceholders = false;
           state.allowSteps = false;
           return "keyword";
 
         // BACKGROUND
-        } else if (state.allowBackground && stream.match(/Background:/)) {
+        } else if (state.allowBackground && stream.match("Background:")) {
+          state.allowPlaceholders = false;
           state.allowSteps = true;
           state.allowBackground = false;
           return "keyword";
 
+        // SCENARIO OUTLINE
+        } else if (state.allowScenario && stream.match("Scenario Outline:")) {
+          state.allowPlaceholders = true;
+          state.allowSteps = true;
+          return "keyword";
+
+        // EXAMPLES
+        } else if (state.allowScenario && stream.match("Examples:")) {
+          state.allowPlaceholders = false;
+          state.allowSteps = true;
+          state.allowBackground = false;
+          state.inMultilineArgument = true;
+          return "keyword";
+
         // SCENARIO
         } else if (state.allowScenario && stream.match(/Scenario:/)) {
+          state.allowPlaceholders = false;
           state.allowSteps = true;
           state.allowBackground = false;
           return "keyword";
@@ -122,13 +140,24 @@ define(function (require, exports, module) {
           return "string";
 
         // MULTILINE ARGUMENTS
-        } else if (stream.match(/:\s*$/)) {
-          state.inMultilineArgument = true;
-          return "keyword";
+        } else if (state.allowSteps && stream.eat(":")) {
+          if (stream.match(/\s*$/)) {
+            state.inMultilineArgument = true;
+            return "keyword";
+          } else {
+            return null;
+          }
+
+        } else if (state.allowSteps && stream.match("<")) {
+          if (stream.match(/.*?>/)) {
+            return "property";
+          } else {
+            return null;
+          }
 
         // Fall through
         } else {
-          stream.eatWhile(/[^":]/);
+          stream.eatWhile(/[^":<]/);
         }
 
         return null;
