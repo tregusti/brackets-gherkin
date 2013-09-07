@@ -1,7 +1,7 @@
 {
   "name": "com.tregusti.gherkin",
   "title": "Gherkin",
-  "description": "Syntax highlighting for Gherkin",
+  "description": "Syntax highlighting for Gherkin. Or Cucmber as many mistakenly say.",
   "homepage": "https://github.com/tregusti/brackets-gherkin",
   "keywords": [
     "gherkin",
