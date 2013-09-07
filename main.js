@@ -29,6 +29,8 @@ define(function (require, exports, module) {
     return {
       startState: function () {
         return {
+          lineNumber: 0,
+          tableHeaderLine: null,
           allowFeature: true,
           allowBackground: false,
           allowScenario: false,
@@ -40,6 +42,9 @@ define(function (require, exports, module) {
         };
       },
       token: function (stream, state) {
+        if (stream.sol()) {
+          state.lineNumber++;
+        }
         stream.eatSpace();
 
         // INSIDE OF MULTILINE ARGUMENTS
@@ -58,14 +63,19 @@ define(function (require, exports, module) {
 
           // TABLE
           if (state.inMultilineTable) {
+            // New table, assume first row is headers
+            if (state.tableHeaderLine === null) {
+              state.tableHeaderLine = state.lineNumber;
+            }
+
             if (stream.match(/\|\s*/)) {
               if (stream.eol()) {
                 state.inMultilineTable = false;
               }
               return null;
             } else {
-              stream.match(/[^\|]/);
-              return "string";
+              stream.match(/[^\|]*/);
+              return state.tableHeaderLine === state.lineNumber ? "property" : "string";
             }
           }
 
@@ -79,7 +89,9 @@ define(function (require, exports, module) {
             state.inMultilineTable = true;
             return null;
           } else {
+            // Or abort
             state.inMultilineArgument = false;
+            state.tableHeaderLine = null;
           }
 
 
