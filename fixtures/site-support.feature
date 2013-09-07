@@ -1,4 +1,7 @@
 Feature: Multiple site support
+  In order to post to a blog
+  As any user
+  I want to be able to do so
 
   Background:
     Given a global administrator named "Greg"
@@ -10,12 +13,6 @@ Feature: Multiple site support
     Given I am logged in as Wilson
     When I try to post to "Expensive Therapy"
     Then I should see "Your article was published."
-
-  Background:
-    Given a global administrator named "Greg"
-    And a blog named "Greg's anti-tax rants"
-    And a customer named "Wilson"
-    And a blog named "Expensive Therapy" owned by "Wilson"
 
   Scenario: Greg posts to a client's blog
     Given I am logged in as Greg
