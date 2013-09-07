@@ -72,7 +72,7 @@ define(function (require, exports, module) {
               if (stream.eol()) {
                 state.inMultilineTable = false;
               }
-              return null;
+              return "bracket";
             } else {
               stream.match(/[^\|]*/);
               return state.tableHeaderLine === state.lineNumber ? "property" : "string";
@@ -87,7 +87,7 @@ define(function (require, exports, module) {
           } else if (stream.match("|")) {
             // Table
             state.inMultilineTable = true;
-            return null;
+            return "bracket";
           } else {
             // Or abort
             state.inMultilineArgument = false;
