@@ -138,10 +138,6 @@ define(function (require, exports, module) {
         state.lineNumber = 0;
         state.tableHeaderLine = null;
         return state;
-//        return {
-//          lineNumber: 0,
-//          tableHeaderLine: null,
-//        };
       },
       indent: function (state, textAfter) {
         return CodeMirror.Pass;
@@ -168,9 +164,9 @@ define(function (require, exports, module) {
           // TABLE
           if (state.inMultilineTable) {
             // New table, assume first row is headers
-            // if (state.tableHeaderLine === null) {
-            //   state.tableHeaderLine = state.lineNumber;
-            // }
+            if (state.tableHeaderLine === null) {
+              state.tableHeaderLine = state.lineNumber;
+            }
 
             if (stream.match(/\|\s*/)) {
               if (stream.eol()) {
