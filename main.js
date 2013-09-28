@@ -171,35 +171,44 @@ define(function (require, exports, module) {
           return "def";
 
         // FEATURE
-        } else if (state.allowFeature && stream.match("Feature:")) {
+        } else if (stream.match("Feature:")) {
+          if (!state.allowFeature) return "error";
+          
           setState(state, State.Feature);
           return "keyword";
-
+          
         // BACKGROUND
-        } else if (state.allowBackground && stream.match("Background:")) {
+        } else if (stream.match("Background:")) {
+          if (!state.allowBackground) return "error";
+          
           setState(state, State.Background);
           return "keyword";
 
         // SCENARIO OUTLINE
-        } else if (state.allowScenarioOutline && stream.match("Scenario Outline:")) {
+        } else if (stream.match("Scenario Outline:")) {
+          if (!state.allowScenarioOutline) return "error";
+          
           setState(state, State.ScenarioOutline);
           return "keyword";
 
         // EXAMPLES
-        } else if (state.allowExamples && stream.match("Examples:")) {
+        } else if (stream.match("Examples:")) {
+          if (!state.allowExamples) return "error";
+          
           setState(state, State.Examples);
           return "keyword";
 
         // SCENARIO
-        } else if (state.allowScenario && stream.match("Scenario:")) {
+        } else if (stream.match("Scenario:")) {
+          if (!state.allowScenario) return "error";
+
           setState(state, State.Scenario);
-//          state.allowPlaceholders = false;
-//          state.allowSteps = true;
-//          state.allowBackground = false;
           return "keyword";
 
         // STEPS
-        } else if (state.allowSteps && stream.match(/(Given|When|Then|And|But)/)) {
+        } else if (stream.match(/(Given|When|Then|And|But)/)) {
+          if (!state.allowSteps) return "error";
+
           setState(state, State.Steps);
           return "keyword";
 
