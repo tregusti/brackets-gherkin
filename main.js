@@ -228,7 +228,8 @@ define(function (require, exports, module) {
             stream.match(/.*?"/);
             return "string";
           }
-
+        
+        // PLACEHOLDER
         } else if (stream.match("<")) {
           if (state.inStep && stream.match(/.*?>/)) {
             return state.allowPlaceholders ? "property" : null;
