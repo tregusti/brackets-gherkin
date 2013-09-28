@@ -42,6 +42,7 @@ define(function (require, exports, module) {
     container.allowBackground      = false;
     container.allowTags            = true;
     container.allowExamples        = false;
+    container.allowPlaceholders    = false;
 
     return container;
   }
@@ -56,23 +57,24 @@ define(function (require, exports, module) {
 
       case State.Feature:
         setDefaultState(container);
-        container.allowScenario = true;
+        container.allowScenario   = true;
         container.allowBackground = true;
         break;
 
       case State.Scenario:
       case State.Background:
         setDefaultState(container);
-        container.allowScenario = true;
-        container.allowSteps = true;
+        container.allowScenario        = true;
+        container.allowSteps           = true;
         container.allowScenarioOutline = true;
         break;
 
       case State.ScenarioOutline:
         setDefaultState(container);
-        container.allowScenario = true;
-        container.allowExamples = true;
-        container.allowSteps = true;
+        container.allowScenario     = true;
+        container.allowExamples     = true;
+        container.allowSteps        = true;
+        container.allowPlaceholders = true;
         break;
     }
     /*jslint white:false*/
@@ -213,9 +215,16 @@ define(function (require, exports, module) {
           return "keyword";
         
         // INLINE STRING
-        } else if (stream.match(/"/)) {
+        } else if (state.allowSteps && stream.match(/"/)) {
           stream.match(/.*?"/);
           return "string";
+
+        } else if (stream.match("<")) {
+          if (stream.match(/.*?>/)) {
+            return state.allowPlaceholders ? "property" : null;
+          } else {
+            return null;
+          }
           
 //        } else if (!state.inMultilineArgument && ) {
 //          stream.match(/.*?"/);
@@ -241,7 +250,7 @@ define(function (require, exports, module) {
         } else {
           // stream.skipToEnd();
           // stream.eatWhile(/[^":<]/);
-          stream.eatWhile(/[^"]/);
+          stream.eatWhile(/[^"<]/);
         }
 
         return null;
