@@ -35,10 +35,14 @@ define(function (require, exports, module) {
 
   function setDefaultState(container) {
     container = container || {};
-    container.allowFeature = false;
-    container.allowScenario = false;
-    container.allowBackground = false;
-    container.allowTags = true;
+
+    container.allowFeature         = false;
+    container.allowScenario        = false;
+    container.allowScenarioOutline = false;
+    container.allowBackground      = false;
+    container.allowTags            = true;
+    container.allowExamples        = false;
+
     return container;
   }
 
@@ -60,6 +64,14 @@ define(function (require, exports, module) {
       case State.Background:
         setDefaultState(container);
         container.allowScenario = true;
+        container.allowSteps = true;
+        container.allowScenarioOutline = true;
+        break;
+
+      case State.ScenarioOutline:
+        setDefaultState(container);
+        container.allowScenario = true;
+        container.allowExamples = true;
         container.allowSteps = true;
         break;
     }
@@ -174,11 +186,8 @@ define(function (require, exports, module) {
           return "keyword";
 
         // EXAMPLES
-        } else if (state.allowScenario && stream.match("Examples:")) {
-          state.allowPlaceholders = false;
-          state.allowSteps = true;
-          state.allowBackground = false;
-          state.inMultilineArgument = true;
+        } else if (state.allowExamples && stream.match("Examples:")) {
+          setState(state, State.Examples);
           return "keyword";
 
         // SCENARIO
