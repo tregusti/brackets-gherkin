@@ -103,6 +103,10 @@ define(function (require, exports, module) {
       case State.MultilineString:
         container.inMultilineString = true;
         break;
+
+      case State.MultilineTable:
+        container.inMultilineTable = true;
+        break;
     }
     /*jslint white:false*/
 
@@ -114,7 +118,12 @@ define(function (require, exports, module) {
     switch (state) {
       case State.MultilineArgument:
         container.inMultilineString      = false;
+        container.inMultilineTable       = false;
         container.allowMultilineArgument = false;
+        break;
+      
+      case State.MultilineTable:
+        container.inMultilineTable = false;
         break;
     }
     /*jslint white:false*/
@@ -156,11 +165,33 @@ define(function (require, exports, module) {
             return "string";
           }
 
+          // TABLE
+          if (state.inMultilineTable) {
+            // New table, assume first row is headers
+            // if (state.tableHeaderLine === null) {
+            //   state.tableHeaderLine = state.lineNumber;
+            // }
+
+            if (stream.match(/\|\s*/)) {
+              if (stream.eol()) {
+                removeState(state, State.MultilineTable);
+              }
+              return "bracket";
+            } else {
+              stream.match(/[^\|]*/);
+              return state.tableHeaderLine === state.lineNumber ? "property" : "string";
+            }
+          }
+
           // DETECT START
           if (stream.match('"""')) {
             // String
             setState(state, State.MultilineString);
             return "string";
+          } else if (stream.match("|")) {
+            // Table
+            setState(state, State.MultilineTable);
+            return "bracket";
           } else {
             // Or abort
             removeState(state, State.MultilineArgument);
