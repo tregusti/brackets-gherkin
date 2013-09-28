@@ -211,9 +211,13 @@ define(function (require, exports, module) {
 
           setState(state, State.Steps);
           return "keyword";
-
-//        // INLINE STRING
-//        } else if (!state.inMultilineArgument && stream.match(/"/)) {
+        
+        // INLINE STRING
+        } else if (stream.match(/"/)) {
+          stream.match(/.*?"/);
+          return "string";
+          
+//        } else if (!state.inMultilineArgument && ) {
 //          stream.match(/.*?"/);
 //          return "string";
 //
@@ -235,8 +239,9 @@ define(function (require, exports, module) {
 
         // Fall through
         } else {
-          stream.skipToEnd();
-//          stream.eatWhile(/[^":<]/);
+          // stream.skipToEnd();
+          // stream.eatWhile(/[^":<]/);
+          stream.eatWhile(/[^"]/);
         }
 
         return null;
