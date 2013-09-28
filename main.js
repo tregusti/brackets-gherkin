@@ -23,14 +23,15 @@ define(function (require, exports, module) {
   };
 
   var State = {
-    None: 0,
-    Feature: 1,
-    Background: 2,
-    Scenario: 4,
-    ScenarioOutline: 8,
-    Steps: 16,
-    MultilineArgument: 32,
-    MultilineString: 64
+    None              : 0,
+    Feature           : 1,
+    Background        : 2,
+    Scenario          : 4,
+    ScenarioOutline   : 8,
+    Steps             : 16,
+    MultilineArgument : 32,
+    MultilineString   : 64,
+    MultilineTable    : 128
   };
 
   function setDefaultState(container) {
@@ -94,6 +95,12 @@ define(function (require, exports, module) {
         container.allowExamples     = true;
         container.allowSteps        = true;
         container.allowPlaceholders = true;
+        break;
+
+      case State.Examples:
+        setDefaultState(container);
+        setState(container, State.MultilineArgument);
+        container.allowScenario = true;
         break;
 
       case State.MultilineArgument:
@@ -191,6 +198,7 @@ define(function (require, exports, module) {
           } else {
             // Or abort
             removeState(state, State.MultilineArgument);
+            state.tableHeaderLine = null;
           }
 
 
