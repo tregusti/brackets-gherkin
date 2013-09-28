@@ -36,6 +36,8 @@ define(function (require, exports, module) {
   function setDefaultState(container) {
     container = container || {};
 
+    container.inStep               = false;
+
     container.allowFeature         = false;
     container.allowScenario        = false;
     container.allowScenarioOutline = false;
@@ -69,8 +71,22 @@ define(function (require, exports, module) {
         container.allowScenarioOutline = true;
         break;
 
+      case State.Steps:
+        var scenarioOutline = container.inScenarioOutline;
+        
+        setDefaultState(container);
+        
+        if (scenarioOutline) setState(container, State.ScenarioOutline);
+        
+        container.inStep               = true;
+        container.allowScenario        = true;
+        container.allowSteps           = true;
+        container.allowScenarioOutline = true;
+        break;
+
       case State.ScenarioOutline:
         setDefaultState(container);
+        container.inScenarioOutline = true;
         container.allowScenario     = true;
         container.allowExamples     = true;
         container.allowSteps        = true;
@@ -220,7 +236,7 @@ define(function (require, exports, module) {
           return "string";
 
         } else if (stream.match("<")) {
-          if (stream.match(/.*?>/)) {
+          if (state.inStep && stream.match(/.*?>/)) {
             return state.allowPlaceholders ? "property" : null;
           } else {
             return null;
@@ -235,13 +251,6 @@ define(function (require, exports, module) {
 //          if (stream.match(/\s*$/)) {
 //            state.inMultilineArgument = true;
 //            return "keyword";
-//          } else {
-//            return null;
-//          }
-//
-//        } else if (state.allowSteps && stream.match("<")) {
-//          if (stream.match(/.*?>/)) {
-//            return "property";
 //          } else {
 //            return null;
 //          }
