@@ -5,6 +5,7 @@
   nomen: true,
   regexp: true,
   indent: 2,
+  bitwise: true,
   maxerr: 50
 */
 /*global
@@ -21,25 +22,74 @@ define(function (require, exports, module) {
     DOUBLE: 2
   };
 
-  var regex = {
-    keywords: /(Feature| {2}(Scenario|In order to|As|I)| {4}(Given|When|Then|And))/
+  var State = {
+    None: 0,
+    Feature: 1,
+    Background: 2,
+    Scenario: 4,
+    ScenarioOutline: 8,
+    Steps: 16,
+    Table: 32,
+    MultilineString: 64
   };
+
+  function setDefaultState(container) {
+    container = container || {};
+    container.allowFeature = false;
+    container.allowScenario = false;
+    container.allowBackground = false;
+    container.allowTags = true;
+    return container;
+  }
+
+  function setState(container, state) {
+    /*jslint white:true*/ // crappy jslint rules. jshint is much better
+    switch (state) {
+      case State.None:
+        setDefaultState(container);
+        container.allowFeature = true;
+        break;
+
+      case State.Feature:
+        setDefaultState(container);
+        container.allowScenario = true;
+        break;
+
+      case State.Scenario:
+        setDefaultState(container);
+        container.allowScenario = true;
+        container.allowSteps = true;
+        break;
+    }
+    /*jslint white:false*/
+
+    return container;
+  }
 
   CodeMirror.defineMode("gherkin", function () {
     return {
       startState: function () {
-        return {
-          lineNumber: 0,
-          tableHeaderLine: null,
-          allowFeature: true,
-          allowBackground: false,
-          allowScenario: false,
-          allowSteps: false,
-          allowPlaceholders: false,
-          inMultilineArgument: false,
-          inMultilineString: false,
-          inMultilineTable: false
-        };
+        var state = setDefaultState();
+        setState(state, State.None);
+
+        state.lineNumber = 0;
+        state.tableHeaderLine = null;
+        return state;
+//        return {
+//          lineNumber: 0,
+//          tableHeaderLine: null,
+//          allowFeature: true,
+//          allowBackground: false,
+//          allowScenario: false,
+//          allowSteps: false,
+//          allowPlaceholders: false,
+//          inMultilineArgument: false,
+//          inMultilineString: false,
+//          inMultilineTable: false
+//        };
+      },
+      indent: function (state, textAfter) {
+        return CodeMirror.Pass;
       },
       token: function (stream, state) {
         if (stream.sol()) {
@@ -48,55 +98,55 @@ define(function (require, exports, module) {
         stream.eatSpace();
 
         // INSIDE OF MULTILINE ARGUMENTS
-        if (state.inMultilineArgument) {
-
-          // STRING
-          if (state.inMultilineString) {
-            if (stream.match('"""')) {
-              state.inMultilineString = false;
-              state.inMultilineArgument = false;
-            } else {
-              stream.match(/.*/);
-            }
-            return "string";
-          }
-
-          // TABLE
-          if (state.inMultilineTable) {
-            // New table, assume first row is headers
-            if (state.tableHeaderLine === null) {
-              state.tableHeaderLine = state.lineNumber;
-            }
-
-            if (stream.match(/\|\s*/)) {
-              if (stream.eol()) {
-                state.inMultilineTable = false;
-              }
-              return "bracket";
-            } else {
-              stream.match(/[^\|]*/);
-              return state.tableHeaderLine === state.lineNumber ? "property" : "string";
-            }
-          }
-
-          // DETECT START
-          if (stream.match('"""')) {
-            // String
-            state.inMultilineString = true;
-            return "string";
-          } else if (stream.match("|")) {
-            // Table
-            state.inMultilineTable = true;
-            return "bracket";
-          } else {
-            // Or abort
-            state.inMultilineArgument = false;
-            state.tableHeaderLine = null;
-          }
-
-
-          return null;
-        }
+//        if (state.inMultilineArgument) {
+//
+//          // STRING
+//          if (state.inMultilineString) {
+//            if (stream.match('"""')) {
+//              state.inMultilineString = false;
+//              state.inMultilineArgument = false;
+//            } else {
+//              stream.match(/.*/);
+//            }
+//            return "string";
+//          }
+//
+//          // TABLE
+//          if (state.inMultilineTable) {
+//            // New table, assume first row is headers
+//            if (state.tableHeaderLine === null) {
+//              state.tableHeaderLine = state.lineNumber;
+//            }
+//
+//            if (stream.match(/\|\s*/)) {
+//              if (stream.eol()) {
+//                state.inMultilineTable = false;
+//              }
+//              return "bracket";
+//            } else {
+//              stream.match(/[^\|]*/);
+//              return state.tableHeaderLine === state.lineNumber ? "property" : "string";
+//            }
+//          }
+//
+//          // DETECT START
+//          if (stream.match('"""')) {
+//            // String
+//            state.inMultilineString = true;
+//            return "string";
+//          } else if (stream.match("|")) {
+//            // Table
+//            state.inMultilineTable = true;
+//            return "bracket";
+//          } else {
+//            // Or abort
+//            state.inMultilineArgument = false;
+//            state.tableHeaderLine = null;
+//          }
+//
+//
+//          return null;
+//        }
 
         // LINE COMMENT
         if (stream.match(/#.*/)) {
@@ -107,24 +157,18 @@ define(function (require, exports, module) {
           return "def";
 
         // FEATURE
-        } else if (state.allowFeature && stream.match(/Feature:/)) {
-          state.allowScenario = true;
-          state.allowBackground = true;
-          state.allowPlaceholders = false;
-          state.allowSteps = false;
+        } else if (state.allowFeature && stream.match("Feature:")) {
+          setState(state, State.Feature);
           return "keyword";
 
         // BACKGROUND
         } else if (state.allowBackground && stream.match("Background:")) {
-          state.allowPlaceholders = false;
-          state.allowSteps = true;
-          state.allowBackground = false;
+          setState(state, State.Background);
           return "keyword";
 
         // SCENARIO OUTLINE
-        } else if (state.allowScenario && stream.match("Scenario Outline:")) {
-          state.allowPlaceholders = true;
-          state.allowSteps = true;
+        } else if (state.allowScenarioOutline && stream.match("Scenario Outline:")) {
+          setState(state, State.ScenarioOutline);
           return "keyword";
 
         // EXAMPLES
@@ -136,40 +180,43 @@ define(function (require, exports, module) {
           return "keyword";
 
         // SCENARIO
-        } else if (state.allowScenario && stream.match(/Scenario:/)) {
-          state.allowPlaceholders = false;
-          state.allowSteps = true;
-          state.allowBackground = false;
+        } else if (state.allowScenario && stream.match("Scenario:")) {
+          setState(state, State.Scenario);
+//          state.allowPlaceholders = false;
+//          state.allowSteps = true;
+//          state.allowBackground = false;
           return "keyword";
 
         // STEPS
         } else if (state.allowSteps && stream.match(/(Given|When|Then|And|But)/)) {
+          setState(state, State.Steps);
           return "keyword";
 
-        // INLINE STRING
-        } else if (!state.inMultilineArgument && stream.match(/"/)) {
-          stream.match(/.*?"/);
-          return "string";
-
-        // MULTILINE ARGUMENTS
-        } else if (state.allowSteps && stream.eat(":")) {
-          if (stream.match(/\s*$/)) {
-            state.inMultilineArgument = true;
-            return "keyword";
-          } else {
-            return null;
-          }
-
-        } else if (state.allowSteps && stream.match("<")) {
-          if (stream.match(/.*?>/)) {
-            return "property";
-          } else {
-            return null;
-          }
+//        // INLINE STRING
+//        } else if (!state.inMultilineArgument && stream.match(/"/)) {
+//          stream.match(/.*?"/);
+//          return "string";
+//
+//        // MULTILINE ARGUMENTS
+//        } else if (state.allowSteps && stream.eat(":")) {
+//          if (stream.match(/\s*$/)) {
+//            state.inMultilineArgument = true;
+//            return "keyword";
+//          } else {
+//            return null;
+//          }
+//
+//        } else if (state.allowSteps && stream.match("<")) {
+//          if (stream.match(/.*?>/)) {
+//            return "property";
+//          } else {
+//            return null;
+//          }
 
         // Fall through
         } else {
-          stream.eatWhile(/[^":<]/);
+          stream.skipToEnd();
+//          stream.eatWhile(/[^":<]/);
         }
 
         return null;
