@@ -53,9 +53,11 @@ define(function (require, exports, module) {
       case State.Feature:
         setDefaultState(container);
         container.allowScenario = true;
+        container.allowBackground = true;
         break;
 
       case State.Scenario:
+      case State.Background:
         setDefaultState(container);
         container.allowScenario = true;
         container.allowSteps = true;
