@@ -5,6 +5,7 @@
   nomen: true,
   regexp: true,
   indent: 2,
+  bitwise: true,
   maxerr: 50
 */
 /*global
@@ -21,25 +22,132 @@ define(function (require, exports, module) {
     DOUBLE: 2
   };
 
-  var regex = {
-    keywords: /(Feature| {2}(Scenario|In order to|As|I)| {4}(Given|When|Then|And))/
+  var State = {
+    None              : 0,
+    Feature           : 1,
+    Background        : 2,
+    Scenario          : 4,
+    ScenarioOutline   : 8,
+    Steps             : 16,
+    MultilineArgument : 32,
+    MultilineString   : 64,
+    MultilineTable    : 128
   };
+
+  function setDefaultState(container) {
+    container = container || {};
+
+    container.inStep              = false;
+    container.inScenarioOutline   = false;
+    container.inMultilineArgument = false;
+
+    container.allowTags              = true;
+    container.allowFeature           = false;
+    container.allowScenario          = false;
+    container.allowScenarioOutline   = false;
+    container.allowBackground        = false;
+    container.allowExamples          = false;
+    container.allowPlaceholders      = false;
+    container.allowMultilineArgument = false;
+
+    return container;
+  }
+
+  function setState(container, state) {
+    /*jslint white:true*/ // crappy jslint rules. jshint is much better
+    switch (state) {
+      case State.None:
+        setDefaultState(container);
+        container.allowFeature = true;
+        break;
+
+      case State.Feature:
+        setDefaultState(container);
+        container.allowScenario   = true;
+        container.allowBackground = true;
+        break;
+
+      case State.Scenario:
+      case State.Background:
+        setDefaultState(container);
+        container.allowScenario        = true;
+        container.allowSteps           = true;
+        container.allowScenarioOutline = true;
+        break;
+
+      case State.Steps:
+        var scenarioOutline = container.inScenarioOutline;
+
+        setDefaultState(container);
+
+        if (scenarioOutline) setState(container, State.ScenarioOutline);
+
+        container.inStep               = true;
+        container.allowScenario        = true;
+        container.allowSteps           = true;
+        container.allowScenarioOutline = true;
+        break;
+
+      case State.ScenarioOutline:
+        setDefaultState(container);
+        container.inScenarioOutline = true;
+        container.allowScenario     = true;
+        container.allowExamples     = true;
+        container.allowSteps        = true;
+        container.allowPlaceholders = true;
+        break;
+
+      case State.Examples:
+        setDefaultState(container);
+        setState(container, State.MultilineArgument);
+        container.allowScenario = true;
+        break;
+
+      case State.MultilineArgument:
+        container.allowMultilineArgument = true;
+        break;
+
+      case State.MultilineString:
+        container.inMultilineString = true;
+        break;
+
+      case State.MultilineTable:
+        container.inMultilineTable = true;
+        break;
+    }
+    /*jslint white:false*/
+
+    return container;
+  }
+
+  function removeState(container, state) {
+    /*jslint white:true*/ // crappy jslint rules. jshint is much better
+    switch (state) {
+      case State.MultilineArgument:
+        container.inMultilineString      = false;
+        container.inMultilineTable       = false;
+        container.allowMultilineArgument = false;
+        break;
+      
+      case State.MultilineTable:
+        container.inMultilineTable = false;
+        break;
+    }
+    /*jslint white:false*/
+  }
 
   CodeMirror.defineMode("gherkin", function () {
     return {
       startState: function () {
-        return {
-          lineNumber: 0,
-          tableHeaderLine: null,
-          allowFeature: true,
-          allowBackground: false,
-          allowScenario: false,
-          allowSteps: false,
-          allowPlaceholders: false,
-          inMultilineArgument: false,
-          inMultilineString: false,
-          inMultilineTable: false
-        };
+        var state = setDefaultState();
+        setState(state, State.None);
+
+        state.lineNumber = 0;
+        state.tableHeaderLine = null;
+        return state;
+      },
+      indent: function (state, textAfter) {
+        return CodeMirror.Pass;
       },
       token: function (stream, state) {
         if (stream.sol()) {
@@ -48,13 +156,12 @@ define(function (require, exports, module) {
         stream.eatSpace();
 
         // INSIDE OF MULTILINE ARGUMENTS
-        if (state.inMultilineArgument) {
+        if (state.allowMultilineArgument) {
 
           // STRING
           if (state.inMultilineString) {
             if (stream.match('"""')) {
-              state.inMultilineString = false;
-              state.inMultilineArgument = false;
+              removeState(state, State.MultilineArgument);
             } else {
               stream.match(/.*/);
             }
@@ -70,7 +177,7 @@ define(function (require, exports, module) {
 
             if (stream.match(/\|\s*/)) {
               if (stream.eol()) {
-                state.inMultilineTable = false;
+                removeState(state, State.MultilineTable);
               }
               return "bracket";
             } else {
@@ -82,15 +189,15 @@ define(function (require, exports, module) {
           // DETECT START
           if (stream.match('"""')) {
             // String
-            state.inMultilineString = true;
+            setState(state, State.MultilineString);
             return "string";
           } else if (stream.match("|")) {
             // Table
-            state.inMultilineTable = true;
+            setState(state, State.MultilineTable);
             return "bracket";
           } else {
             // Or abort
-            state.inMultilineArgument = false;
+            removeState(state, State.MultilineArgument);
             state.tableHeaderLine = null;
           }
 
@@ -107,69 +214,79 @@ define(function (require, exports, module) {
           return "def";
 
         // FEATURE
-        } else if (state.allowFeature && stream.match(/Feature:/)) {
-          state.allowScenario = true;
-          state.allowBackground = true;
-          state.allowPlaceholders = false;
-          state.allowSteps = false;
+        } else if (stream.match("Feature:")) {
+          if (!state.allowFeature) return "error";
+
+          setState(state, State.Feature);
           return "keyword";
 
         // BACKGROUND
-        } else if (state.allowBackground && stream.match("Background:")) {
-          state.allowPlaceholders = false;
-          state.allowSteps = true;
-          state.allowBackground = false;
+        } else if (stream.match("Background:")) {
+          if (!state.allowBackground) return "error";
+
+          setState(state, State.Background);
           return "keyword";
 
         // SCENARIO OUTLINE
-        } else if (state.allowScenario && stream.match("Scenario Outline:")) {
-          state.allowPlaceholders = true;
-          state.allowSteps = true;
+        } else if (stream.match("Scenario Outline:")) {
+          if (!state.allowScenarioOutline) return "error";
+
+          setState(state, State.ScenarioOutline);
           return "keyword";
 
         // EXAMPLES
-        } else if (state.allowScenario && stream.match("Examples:")) {
-          state.allowPlaceholders = false;
-          state.allowSteps = true;
-          state.allowBackground = false;
-          state.inMultilineArgument = true;
+        } else if (stream.match("Examples:")) {
+          if (!state.allowExamples) return "error";
+
+          setState(state, State.Examples);
           return "keyword";
 
         // SCENARIO
-        } else if (state.allowScenario && stream.match(/Scenario:/)) {
-          state.allowPlaceholders = false;
-          state.allowSteps = true;
-          state.allowBackground = false;
+        } else if (stream.match("Scenario:")) {
+          if (!state.allowScenario) return "error";
+
+          setState(state, State.Scenario);
           return "keyword";
 
         // STEPS
-        } else if (state.allowSteps && stream.match(/(Given|When|Then|And|But)/)) {
+        } else if (stream.match(/(Given|When|Then|And|But)/)) {
+          if (!state.allowSteps) return "error";
+
+          setState(state, State.Steps);
           return "keyword";
 
         // INLINE STRING
-        } else if (!state.inMultilineArgument && stream.match(/"/)) {
-          stream.match(/.*?"/);
-          return "string";
-
-        // MULTILINE ARGUMENTS
-        } else if (state.allowSteps && stream.eat(":")) {
-          if (stream.match(/\s*$/)) {
-            state.inMultilineArgument = true;
-            return "keyword";
+        } else if (state.allowSteps && stream.match(/"/)) {
+          if (stream.match(/""/)) {
+            return null;
+          } else {
+            stream.match(/.*?"/);
+            return "string";
+          }
+        
+        // PLACEHOLDER
+        } else if (stream.match("<")) {
+          if (state.inStep && stream.match(/.*?>/)) {
+            return state.allowPlaceholders ? "property" : null;
           } else {
             return null;
           }
 
-        } else if (state.allowSteps && stream.match("<")) {
-          if (stream.match(/.*?>/)) {
-            return "property";
+        // MULTILINE ARGUMENTS
+        } else if (stream.eat(":")) {
+          if (!state.inStep) return "error";
+
+          if (stream.match(/\s*$/)) {
+            setState(state, State.MultilineArgument);
+            return "keyword";
           } else {
             return null;
           }
 
         // Fall through
         } else {
-          stream.eatWhile(/[^":<]/);
+          // stream.skipToEnd();
+          stream.eatWhile(/[^"<:]/);
         }
 
         return null;
