@@ -297,6 +297,7 @@ define(function (require, exports, module) {
   LanguageManager.defineLanguage("gherkin", {
     name: "Gherkin",
     mode: "gherkin",
-    fileExtensions: ["feature"]
+    fileExtensions: ["feature"],
+    lineComment: ["#"]
   });
 });
