@@ -17,6 +17,8 @@ define(function (require, exports, module) {
   'use strict';
 
   var LanguageManager = brackets.getModule("language/LanguageManager");
+  var CodeMirror      = brackets.getModule("thirdparty/CodeMirror2/lib/codemirror");
+
   var Quotes = {
     SINGLE: 1,
     DOUBLE: 2
