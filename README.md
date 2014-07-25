@@ -23,7 +23,12 @@ git archive --format zip -o brackets-gherkin.zip master
 full feature/thing/issue. [Git flow][4] is not used since more or less all
 commits equal a new release.
 
+## Statistics
+
+There are some [statistics][5] about downloads for each version released.
+
   [1]: http://brackets.io/ "Brackets — Open source code editor built with the web for the web"
   [2]: https://brackets-registry.aboutweb.com/ "Brackets registry"
   [3]: https://guides.github.com/introduction/flow/ "GitHub flow"
   [4]: http://nvie.com/posts/a-successful-git-branching-model/ "Git flow — A successful Git branching model"
+  [5]: http://konstantinkobs.github.io/BracketsExtensionStats/#com.tregusti.gherkin "Brackets Extensions Stats"
