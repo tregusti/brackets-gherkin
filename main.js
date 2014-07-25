@@ -48,6 +48,7 @@ define(function (require, exports, module) {
     container.allowScenario          = false;
     container.allowScenarioOutline   = false;
     container.allowBackground        = false;
+    container.allowInlineString      = false;
     container.allowExamples          = false;
     container.allowPlaceholders      = false;
     container.allowMultilineArgument = false;
@@ -65,8 +66,9 @@ define(function (require, exports, module) {
 
       case State.Feature:
         setDefaultState(container);
-        container.allowScenario   = true;
-        container.allowBackground = true;
+        container.allowScenario     = true;
+        container.allowInlineString = true;
+        container.allowBackground   = true;
         break;
 
       case State.Scenario:
@@ -75,6 +77,7 @@ define(function (require, exports, module) {
         container.allowScenario        = true;
         container.allowSteps           = true;
         container.allowScenarioOutline = true;
+        container.allowInlineString    = true;
         break;
 
       case State.Steps:
@@ -85,6 +88,7 @@ define(function (require, exports, module) {
         if (scenarioOutline) setState(container, State.ScenarioOutline);
 
         container.inStep               = true;
+        container.allowInlineString    = true;
         container.allowScenario        = true;
         container.allowSteps           = true;
         container.allowScenarioOutline = true;
@@ -93,6 +97,7 @@ define(function (require, exports, module) {
       case State.ScenarioOutline:
         setDefaultState(container);
         container.inScenarioOutline = true;
+        container.allowInlineString = true;
         container.allowScenario     = true;
         container.allowExamples     = true;
         container.allowSteps        = true;
@@ -130,7 +135,7 @@ define(function (require, exports, module) {
         container.inMultilineTable       = false;
         container.allowMultilineArgument = false;
         break;
-      
+
       case State.MultilineTable:
         container.inMultilineTable = false;
         break;
@@ -258,14 +263,14 @@ define(function (require, exports, module) {
           return "keyword";
 
         // INLINE STRING
-        } else if (state.allowSteps && stream.match(/"/)) {
+        } else if (state.allowInlineString && stream.match(/"/)) {
           if (stream.match(/""/)) {
             return null;
           } else {
             stream.match(/.*?"/);
             return "string";
           }
-        
+
         // PLACEHOLDER
         } else if (stream.match("<")) {
           if (state.inStep && stream.match(/.*?>/)) {
